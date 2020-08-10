@@ -2,6 +2,10 @@ package pe
 
 // CONSTANTS / MAGIC NUMBERS
 
+// MZSignature is the signature of the MZ format. This is the value of the
+// Signature field in ImageDOSHeader.
+var MZSignature = [2]byte{'M', 'Z'}
+
 // PESignature is the signature of the PE format. This is the value of the
 // Signature field in ImageNTHeaders32 and ImageNTHeaders64.
 var PESignature = [4]byte{'P', 'E', 0, 0}
@@ -46,6 +50,14 @@ const (
 	// SizeOfImageDataDirectory is the on-disk size of the ImageDataDirectory
 	// structure.
 	SizeOfImageDataDirectory = 8
+)
+
+// Enumeration of useful field offsets.
+const (
+	// OffsetOfOptionalHeaderMagicFromNTHeader is the offset from the start of
+	// the NT header to the optional header magic value. This is helpful for
+	// determining if the PE file is PE32 or PE64.
+	OffsetOfOptionalHeaderMagicFromNTHeader = 0x18
 )
 
 // Enumeration of fixed-size array lengths in PE
@@ -224,11 +236,26 @@ const (
 	ImageSectionTLSCharacteristicsScaleIndex = 0x00000001
 )
 
+// Enumeration of relocation types.
+const (
+	ImageRelBasedAbsolute         = 0
+	ImageRelBasedHigh             = 1
+	ImageRelBasedLow              = 2
+	ImageRelBasedHighLow          = 3
+	ImageRelBasedHighAdj          = 4
+	ImageRelBasedMachineSpecific5 = 5
+	ImageRelBasedReserved         = 6
+	ImageRelBasedMachineSpecific7 = 7
+	ImageRelBasedMachineSpecific8 = 8
+	ImageRelBasedMachineSpecific9 = 9
+	ImageRelBasedDir64            = 10
+)
+
 // ImageDOSHeader is the structure of the DOS MZ Executable format. All PE
 // files contain at least a valid stub DOS MZ executable at the top; the PE
 // format itself starts at the address specified by NewHeaderAddr.
 type ImageDOSHeader struct {
-	MagicNumber   uint16
+	Signature     [2]byte
 	LastPageBytes uint16
 	CountPages    uint16
 	CountRelocs   uint16
