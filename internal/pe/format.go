@@ -360,6 +360,42 @@ type ImageOptionalHeader64 struct {
 	DataDirectory               [NumDirectoryEntries]ImageDataDirectory
 }
 
+// To64 converts the ImageOptionalHeader32 to an ImageOptionalHeader64.
+func (i ImageOptionalHeader32) To64() ImageOptionalHeader64 {
+	return ImageOptionalHeader64{
+		Magic:                       i.Magic,
+		MajorLinkerVersion:          i.MajorLinkerVersion,
+		MinorLinkerVersion:          i.MinorLinkerVersion,
+		SizeOfCode:                  i.SizeOfCode,
+		SizeOfInitializedData:       i.SizeOfInitializedData,
+		SizeOfUninitializedData:     i.SizeOfUninitializedData,
+		AddressOfEntryPoint:         i.AddressOfEntryPoint,
+		BaseOfCode:                  i.BaseOfCode,
+		ImageBase:                   uint64(i.ImageBase),
+		SectionAlignment:            i.SectionAlignment,
+		FileAlignment:               i.FileAlignment,
+		MajorOperatingSystemVersion: i.MajorOperatingSystemVersion,
+		MinorOperatingSystemVersion: i.MinorOperatingSystemVersion,
+		MajorImageVersion:           i.MajorImageVersion,
+		MinorImageVersion:           i.MinorImageVersion,
+		MajorSubsystemVersion:       i.MajorSubsystemVersion,
+		MinorSubsystemVersion:       i.MinorSubsystemVersion,
+		Win32VersionValue:           i.Win32VersionValue,
+		SizeOfImage:                 i.SizeOfImage,
+		SizeOfHeaders:               i.SizeOfHeaders,
+		CheckSum:                    i.CheckSum,
+		Subsystem:                   i.Subsystem,
+		DllCharacteristics:          i.DllCharacteristics,
+		SizeOfStackReserve:          uint64(i.SizeOfStackReserve),
+		SizeOfStackCommit:           uint64(i.SizeOfStackCommit),
+		SizeOfHeapReserve:           uint64(i.SizeOfHeapReserve),
+		SizeOfHeapCommit:            uint64(i.SizeOfHeapCommit),
+		LoaderFlags:                 i.LoaderFlags,
+		NumberOfRvaAndSizes:         i.NumberOfRvaAndSizes,
+		DataDirectory:               i.DataDirectory,
+	}
+}
+
 // ImageNTHeaders32 contains the PE file headers for 32-bit PE images.
 type ImageNTHeaders32 struct {
 	// Signature identifies the PE format; Always "PE\0\0".
@@ -374,6 +410,15 @@ type ImageNTHeaders64 struct {
 	Signature      [4]byte
 	FileHeader     ImageFileHeader
 	OptionalHeader ImageOptionalHeader64
+}
+
+// To64 converts the ImageNTHeaders32 to an ImageNTHeaders64.
+func (i ImageNTHeaders32) To64() ImageNTHeaders64 {
+	return ImageNTHeaders64{
+		Signature:      i.Signature,
+		FileHeader:     i.FileHeader,
+		OptionalHeader: i.OptionalHeader.To64(),
+	}
 }
 
 // ImageDataDirectory holds a record for the given data directory. Each data
