@@ -1,6 +1,73 @@
-package winloader
+package pe
 
-// Machine values for the file header.
+// CONSTANTS / MAGIC NUMBERS
+
+// PESignature is the signature of the PE format. This is the value of the
+// Signature field in ImageNTHeaders32 and ImageNTHeaders64.
+var PESignature = [4]byte{'P', 'E', 0, 0}
+
+// Enumeration of magic numbers
+const (
+	// ImageNTOptionalHeader32Magic is the magic number for 32-bit optional
+	// header (ImageOptionalHeader32)
+	ImageNTOptionalHeader32Magic = 0x010b
+
+	// ImageNTOptionalHeader64Magic is the magic number for 64-bit optional
+	// header (ImageOptionalHeader64)
+	ImageNTOptionalHeader64Magic = 0x020b
+)
+
+// Enumeration of structure lengths.
+const (
+	// SizeOfImageDOSHeader is the on-disk size of the ImageDOSHeader
+	// structure.
+	SizeOfImageDOSHeader = 64
+
+	// SizeOfImageFileHeader is the on-disk size of the ImageFileHeader
+	// structure.
+	SizeOfImageFileHeader = 20
+
+	// SizeOfImageOptionalHeader32 is the on-disk size of the
+	// ImageOptionalHeader32 structure.
+	SizeOfImageOptionalHeader32 = 224
+
+	// SizeOfImageOptionalHeader64 is the on-disk size of the
+	// ImageOptionalHeader64 structure.
+	SizeOfImageOptionalHeader64 = 240
+
+	// SizeOfImageNTHeaders32 is the on-disk size of the ImageNTHeaders32
+	// structure.
+	SizeOfImageNTHeaders32 = 248
+
+	// SizeOfImageNTHeaders64 is the on-disk size of the ImageNTHeaders64
+	// structure.
+	SizeOfImageNTHeaders64 = 264
+
+	// SizeOfImageDataDirectory is the on-disk size of the ImageDataDirectory
+	// structure.
+	SizeOfImageDataDirectory = 8
+)
+
+// Enumeration of fixed-size array lengths in PE
+const (
+	// NumDirectoryEntries specifies the number of data directory entries.
+	NumDirectoryEntries = 16
+
+	// SectionNameLength is the size of a section short name.
+	SectionNameLength = 8
+)
+
+// Enumeration of known Windows Loader limits. (Some of these may not be
+// imposed by the format itself and purely by Windows runtime.)
+const (
+	// MaxNumSections specifies the maximum number of sections that are
+	// allowed. This is imposed by Windows Loader.
+	MaxNumSections = 96
+)
+
+// ENUMERATION VALUES
+
+// Enumeration of machine values for the file header.
 const (
 	ImageFileMachineUnknown    = 0x0000
 	ImageFileMachineTargetHost = 0x0001
@@ -36,7 +103,7 @@ const (
 	ImageFileMachineCEE        = 0x0C0E
 )
 
-// Charateristics values for the file header.
+// Enumeration of charateristics values for the file header.
 const (
 	ImageFileRelocsStripped       = 0x0001
 	ImageFileExecutableImage      = 0x0002
@@ -53,6 +120,108 @@ const (
 	ImageFileDLL                  = 0x2000
 	ImageFileUPSystemOnly         = 0x4000
 	ImageFileBytesReversedHi      = 0x8000
+)
+
+// Enumeration of image subsystem values.
+const (
+	ImageSubsystemUnknown                = 0
+	ImageSubsystemNative                 = 1
+	ImageSubsystemWindowsGUI             = 2
+	ImageSubsystemWindowsCUI             = 3
+	ImageSubsystemOS2CUI                 = 5
+	ImageSubsystemPOSIXCUI               = 7
+	ImageSubsystemNativeWindows          = 8
+	ImageSubsystemWindowsCEGUI           = 9
+	ImageSubsystemEFIApplication         = 10
+	ImageSubsystemEFIBootServiceDriver   = 11
+	ImageSubsystemEFIRuntimeDriver       = 12
+	ImageSubsystemEFIROM                 = 13
+	ImageSubsystemXBox                   = 14
+	ImageSubsystemWindowsBootApplication = 16
+	ImageSubsystemXBoxCodeCatalog        = 17
+)
+
+// Enumeration of DLL characteristics values.
+const (
+	ImageDLLCharacteristicsHighEntropyVA       = 0x0020
+	ImageDLLCharacteristicsDynamicBase         = 0x0040
+	ImageDLLCharacteristicsForceIntegrity      = 0x0080
+	ImageDLLCharacteristicsNXCompat            = 0x0100
+	ImageDLLCharacteristicsNoIsolation         = 0x0200
+	ImageDLLCharacteristicsNoSEH               = 0x0400
+	ImageDLLCharacteristicsNoBind              = 0x0800
+	ImageDLLCharacteristicsAppContainer        = 0x1000
+	ImageDLLCharacteristicsWDMDriver           = 0x2000
+	ImageDLLCharacteristicsGuardCF             = 0x4000
+	ImageDLLCharacteristicsTerminalServerAware = 0x8000
+)
+
+// Enumeration of image directory entry indexes. These represent indices into
+// the data directory array of the optional header.
+const (
+	ImageDirectoryEntryExport        = 0
+	ImageDirectoryEntryImport        = 1
+	ImageDirectoryEntryResource      = 2
+	ImageDirectoryEntryException     = 3
+	ImageDirectoryEntrySecurity      = 4
+	ImageDirectoryEntryBaseReloc     = 5
+	ImageDirectoryEntryDebug         = 6
+	ImageDirectoryEntryCopyright     = 7
+	ImageDirectoryEntryArchitecture  = 7
+	ImageDirectoryEntryGlobalPtr     = 8
+	ImageDirectoryEntryTLS           = 9
+	ImageDirectoryEntryLoadConfig    = 10
+	ImageDirectoryEntryBoundImport   = 11
+	ImageDirectoryEntryIAT           = 12
+	ImageDirectoryEntryDelayImport   = 13
+	ImageDirectoryEntryCOMDescriptor = 14
+)
+
+// Enumeration of image section characteristics.
+const (
+	ImageSectionCharacteristicsNoPad                     = 0x00000008
+	ImageSectionCharacteristicsContainsCode              = 0x00000020
+	ImageSectionCharacteristicsContainsInitializedData   = 0x00000040
+	ImageSectionCharacteristicsContainsUninitailizedData = 0x00000080
+	ImageSectionCharacteristicsLinkOther                 = 0x00000100
+	ImageSectionCharacteristicsLinkInfo                  = 0x00000200
+	ImageSectionCharacteristicsLinkRemove                = 0x00000800
+	ImageSectionCharacteristicsLinkCOMDAT                = 0x00001000
+	ImageSectionCharacteristicsNoDeferSpecExc            = 0x00004000
+	ImageSectionCharacteristicsGPRel                     = 0x00008000
+	ImageSectionCharacteristicsMemoryFarData             = 0x00008000
+	ImageSectionCharacteristicsMemoryPurgeable           = 0x00020000
+	ImageSectionCharacteristicsMemory16Bit               = 0x00020000
+	ImageSectionCharacteristicsMemoryLocked              = 0x00040000
+	ImageSectionCharacteristicsMemoryPreload             = 0x00080000
+	ImageSectionCharacteristicsAlign1Bytes               = 0x00100000
+	ImageSectionCharacteristicsAlign2Bytes               = 0x00200000
+	ImageSectionCharacteristicsAlign4Bytes               = 0x00300000
+	ImageSectionCharacteristicsAlign8Bytes               = 0x00400000
+	ImageSectionCharacteristicsAlign16Bytes              = 0x00500000
+	ImageSectionCharacteristicsAlign32Bytes              = 0x00600000
+	ImageSectionCharacteristicsAlign64Bytes              = 0x00700000
+	ImageSectionCharacteristicsAlign128Bytes             = 0x00800000
+	ImageSectionCharacteristicsAlign256Bytes             = 0x00900000
+	ImageSectionCharacteristicsAlign512Bytes             = 0x00A00000
+	ImageSectionCharacteristicsAlign1024Bytes            = 0x00B00000
+	ImageSectionCharacteristicsAlign2048Bytes            = 0x00C00000
+	ImageSectionCharacteristicsAlign4096Bytes            = 0x00D00000
+	ImageSectionCharacteristicsAlign8192Bytes            = 0x00E00000
+	ImageSectionCharacteristicsAlignMask                 = 0x00F00000
+	ImageSectionCharacteristicsLinkNumRelocOverflow      = 0x01000000
+	ImageSectionCharacteristicsMemoryDiscardable         = 0x02000000
+	ImageSectionCharacteristicsMemoryNotCached           = 0x04000000
+	ImageSectionCharacteristicsMemoryNotPaged            = 0x08000000
+	ImageSectionCharacteristicsMemoryShared              = 0x10000000
+	ImageSectionCharacteristicsMemoryExecute             = 0x20000000
+	ImageSectionCharacteristicsMemoryRead                = 0x40000000
+	ImageSectionCharacteristicsMemoryWrite               = 0x80000000
+)
+
+// Enumeration of TLS characteristics.
+const (
+	ImageSectionTLSCharacteristicsScaleIndex = 0x00000001
 )
 
 // ImageDOSHeader is the structure of the DOS MZ Executable format. All PE
@@ -79,34 +248,6 @@ type ImageDOSHeader struct {
 	Reserved2     [10]uint16
 	NewHeaderAddr uint32
 }
-
-// ImageBaseRelocation holds the header for a single page of base relocation
-// data. The .reloc section of the binary contains a series of blocks of
-// base relocation data, each starting with this header and followed by n
-// 16-bit values that each represent a single relocation. The 4 most
-// significant bits specify the type of relocation, while the 12 least
-// significant bits contain the lower bits of the address (which is combined
-// with the virtual address of the page.) The SizeOfBlock value specifies the
-// size of an entire block, in bytes, including its header.
-type ImageBaseRelocation struct {
-	VirtualAddress uint32
-	SizeOfBlock    uint32
-}
-
-// ImageDataDirectory holds a record for the given data directory. Each data
-// directory contains information about another section, such as the import
-// table. The index of the directory entry determines which section it
-// pertains to.
-type ImageDataDirectory struct {
-	VirtualAddress uint32
-	Size           uint32
-}
-
-// NumDirectoryEntries specifies the number of data directory entries.
-const NumDirectoryEntries = 16
-
-// MaxNumSections specifies the maximum number of sections that are allowed.
-const MaxNumSections = 96
 
 // ImageFileHeader contains some of the basic attributes about the PE/COFF
 // file, including the number of sections and the machine type.
@@ -195,7 +336,7 @@ type ImageOptionalHeader64 struct {
 // ImageNTHeaders32 contains the PE file headers for 32-bit PE images.
 type ImageNTHeaders32 struct {
 	// Signature identifies the PE format; Always "PE\0\0".
-	Signature      uint32
+	Signature      [4]byte
 	FileHeader     ImageFileHeader
 	OptionalHeader ImageOptionalHeader32
 }
@@ -203,7 +344,45 @@ type ImageNTHeaders32 struct {
 // ImageNTHeaders64 contains the PE file headers for 64-bit PE images.
 type ImageNTHeaders64 struct {
 	// Signature identifies the PE format; Always "PE\0\0".
-	Signature      uint32
+	Signature      [4]byte
 	FileHeader     ImageFileHeader
 	OptionalHeader ImageOptionalHeader64
+}
+
+// ImageDataDirectory holds a record for the given data directory. Each data
+// directory contains information about another section, such as the import
+// table. The index of the directory entry determines which section it
+// pertains to.
+type ImageDataDirectory struct {
+	VirtualAddress uint32
+	Size           uint32
+}
+
+// ImageSectionHeader is the header for a section. Windows Loader uses these
+// entries to configure the memory mapping of the executable. A series of
+// these structures immediately follow the headers.
+type ImageSectionHeader struct {
+	Name                         [SectionNameLength]byte
+	PhysicalAddressOrVirtualSize uint32
+	VirtualAddress               uint32
+	SizeOfRawData                uint32
+	PointerToRawData             uint32
+	PointerToRelocations         uint32
+	PointerToLinenumbers         uint32
+	NumberOfRelocations          uint16
+	NumberOfLinenumbers          uint16
+	Characteristics              uint32
+}
+
+// ImageBaseRelocation holds the header for a single page of base relocation
+// data. The .reloc section of the binary contains a series of blocks of
+// base relocation data, each starting with this header and followed by n
+// 16-bit values that each represent a single relocation. The 4 most
+// significant bits specify the type of relocation, while the 12 least
+// significant bits contain the lower bits of the address (which is combined
+// with the virtual address of the page.) The SizeOfBlock value specifies the
+// size of an entire block, in bytes, including its header.
+type ImageBaseRelocation struct {
+	VirtualAddress uint32
+	SizeOfBlock    uint32
 }
