@@ -84,11 +84,12 @@ const (
 	ImageFileMachineUnknown    = 0x0000
 	ImageFileMachineTargetHost = 0x0001
 	ImageFileMachinei386       = 0x014c
+	ImageFileMachineR3000BE    = 0x0160
 	ImageFileMachineR3000      = 0x0162
 	ImageFileMachineR4000      = 0x0166
 	ImageFileMachineR10000     = 0x0168
 	ImageFileMachineWCEMIPSv2  = 0x0169
-	ImageFileMachineALPHA      = 0x0184
+	ImageFileMachineAlpha      = 0x0184
 	ImageFileMachineSH3        = 0x01a2
 	ImageFileMachineSH3DSP     = 0x01a3
 	ImageFileMachineSH3E       = 0x01a4
@@ -113,6 +114,9 @@ const (
 	ImageFileMachineM32R       = 0x9041
 	ImageFileMachineARM64      = 0xAA64
 	ImageFileMachineCEE        = 0x0C0E
+	ImageFileMachineRISCV32    = 0x5032
+	ImageFileMachineRISCV64    = 0x5064
+	ImageFileMachineRISCV128   = 0x5128
 )
 
 // Enumeration of charateristics values for the file header.
