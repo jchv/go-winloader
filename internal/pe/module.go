@@ -18,9 +18,17 @@ var (
 	ErrUnknownOptionalHeaderMagic = errors.New("pe: unknown optional header magic")
 )
 
+// Section contains the information for a section.
+type Section struct {
+	Header ImageSectionHeader
+	Data   []byte
+}
+
 // Module contains a parsed and loaded PE file.
 type Module struct {
-	hdr ImageNTHeaders64
+	Header   ImageNTHeaders64
+	Sections []Section
+	Relocs   []BaseRelocation
 }
 
 // LoadModule loads a PE module into memory.
@@ -74,13 +82,16 @@ func LoadModulePE32(r io.ReadSeeker) (*Module, error) {
 	}
 
 	m := &Module{}
-	m.hdr = nt.To64()
+	m.Header = nt.To64()
 
 	for i := uint16(0); i < nt.FileHeader.NumberOfSections; i++ {
 		section := ImageSectionHeader{}
 		if err := binary.Read(r, binary.LittleEndian, &section); err != nil {
 			return nil, err
 		}
+		m.Sections = append(m.Sections, Section{
+			Header: section,
+		})
 	}
 
 	return m, nil
@@ -98,13 +109,16 @@ func LoadModulePE64(r io.ReadSeeker) (*Module, error) {
 	}
 
 	m := &Module{}
-	m.hdr = nt
+	m.Header = nt
 
 	for i := uint16(0); i < nt.FileHeader.NumberOfSections; i++ {
 		section := ImageSectionHeader{}
 		if err := binary.Read(r, binary.LittleEndian, &section); err != nil {
 			return nil, err
 		}
+		m.Sections = append(m.Sections, Section{
+			Header: section,
+		})
 	}
 
 	return m, nil

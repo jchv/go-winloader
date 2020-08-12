@@ -9,8 +9,9 @@ This is a bit more versatile than linking directly to object files, since you do
 ## Example
 
 ```go
-// Load a module off disk (for simplicity; you can pass in any io.ReadSeeker.)
-mod, err := LoadLibrary(os.Open("my.dll"))
+// Load a module off disk (for simplicity; you can pass in any byte slice.)
+b, _ := ioutil.ReadFile("my.dll")
+mod, err := LoadLibrary(b)
 if err != nil {
     log.Fatalln("error loading module:", err)
 }

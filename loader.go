@@ -2,7 +2,6 @@ package winloader
 
 import (
 	"errors"
-	"io"
 )
 
 // Proc represents a procedure on a Windows module.
@@ -23,9 +22,9 @@ type Module interface {
 	Free() error
 }
 
-// LoadLibrary implements a Windows module loader. It accepts a readseeker
-// for a Portable Executable formatted module and returns an interface to
+// LoadLibrary implements a Windows module loader. It accepts a byte slice
+// of a Portable Executable formatted module and returns an interface to
 // interact with the loaded module.
-func LoadLibrary(r io.ReadSeeker) (Module, error) {
+func LoadLibrary(module []byte) (Module, error) {
 	return nil, errors.New("unimplemented")
 }
