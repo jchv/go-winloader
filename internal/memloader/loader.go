@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"io"
 
 	"github.com/jchv/go-winloader/internal/loader"
 	"github.com/jchv/go-winloader/internal/pe"
@@ -120,10 +119,14 @@ func (l *Loader) LoadMem(data []byte) (loader.Module, error) {
 
 	// Perform relocations
 	relocs := pe.LoadBaseRelocs(bin, mem)
-	pe.Relocate(machine, relocs, uint64(realBase), bin.Header.OptionalHeader.ImageBase, mem, order)
+	if err := pe.Relocate(machine, relocs, uint64(realBase), bin.Header.OptionalHeader.ImageBase, mem, order); err != nil {
+		return nil, err
+	}
 
 	// Perform runtime linking
-	pe.LinkModule(bin, mem, l.next)
+	if err := pe.LinkModule(bin, mem, l.next); err != nil {
+		return nil, err
+	}
 
 	// Set access flags.
 	for _, section := range bin.Sections {
@@ -156,9 +159,6 @@ func (l *Loader) LoadMem(data []byte) (loader.Module, error) {
 	}
 
 	// Execute entrypoint for attach.
-	dump := [0x100]byte{}
-	mem.Seek(int64(bin.Header.OptionalHeader.AddressOfEntryPoint), io.SeekStart)
-	mem.Read(dump[:])
 	entry := l.machine.MemProc(realBase + uint64(bin.Header.OptionalHeader.AddressOfEntryPoint))
 	entry.Call(uint64(mem.Addr()), 1, 0)
 
