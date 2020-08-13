@@ -20,6 +20,7 @@ var (
 
 // Module contains a parsed and loaded PE file.
 type Module struct {
+	IsPE64    bool
 	DOSHeader ImageDOSHeader
 	Header    ImageNTHeaders64
 	Sections  []ImageSectionHeader
@@ -58,12 +59,14 @@ func LoadModule(r io.ReadSeeker) (*Module, error) {
 	r.Seek(int64(dos.NewHeaderAddr), io.SeekStart)
 	switch optmagic {
 	case ImageNTOptionalHeader32Magic:
+		m.IsPE64 = false
 		nt := ImageNTHeaders32{}
 		if err := binary.Read(r, binary.LittleEndian, &nt); err != nil {
 			return nil, err
 		}
 		m.Header = nt.To64()
 	case ImageNTOptionalHeader64Magic:
+		m.IsPE64 = true
 		nt := ImageNTHeaders64{}
 		if err := binary.Read(r, binary.LittleEndian, &nt); err != nil {
 			return nil, err

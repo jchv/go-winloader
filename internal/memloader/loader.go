@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"io"
 
 	"github.com/jchv/go-winloader/internal/loader"
 	"github.com/jchv/go-winloader/internal/pe"
@@ -155,6 +156,33 @@ func (l *Loader) LoadMem(data []byte) (loader.Module, error) {
 		err := mem.Protect(uint64(section.VirtualAddress), uint64(section.SizeOfRawData), protect)
 		if err != nil {
 			return nil, err
+		}
+	}
+
+	// Execute TLS callbacks.
+	tlsdir := bin.Header.OptionalHeader.DataDirectory[pe.ImageDirectoryEntryTLS]
+	if tlsdir.Size > 0 {
+		mem.Seek(int64(tlsdir.VirtualAddress), io.SeekStart)
+		dir := pe.ImageTLSDirectory64{}
+		b := [8]byte{}
+		psize := 4
+		if bin.IsPE64 {
+			psize = 8
+			binary.Read(mem, binary.LittleEndian, &dir)
+		} else {
+			dir32 := pe.ImageTLSDirectory32{}
+			binary.Read(mem, binary.LittleEndian, &dir32)
+			dir = dir32.To64()
+		}
+		mem.Seek(int64(dir.AddressOfCallBacks), io.SeekStart)
+		for {
+			mem.Read(b[:psize])
+			addr := binary.LittleEndian.Uint64(b[:])
+			if addr == 0 {
+				break
+			}
+			cb := l.machine.MemProc(realBase + addr)
+			cb.Call(uint64(mem.Addr()), 1, 0)
 		}
 	}
 

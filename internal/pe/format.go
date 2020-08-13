@@ -486,3 +486,37 @@ type ImageExportDirectory struct {
 	AddressOfNames        uint32
 	AddressOfNameOrdinals uint32
 }
+
+// ImageTLSDirectory32 contains information about the module's thread local
+// storage callbacks (in PE32)
+type ImageTLSDirectory32 struct {
+	StartAddressOfRawData uint32
+	EndAddressOfRawData   uint32
+	AddressOfIndex        uint32
+	AddressOfCallBacks    uint32
+	SizeOfZeroFill        uint32
+	Characteristics       uint32
+}
+
+// ImageTLSDirectory64 contains information about the module's thread local
+// storage callbacks (in PE64)
+type ImageTLSDirectory64 struct {
+	StartAddressOfRawData uint64
+	EndAddressOfRawData   uint64
+	AddressOfIndex        uint64
+	AddressOfCallBacks    uint64
+	SizeOfZeroFill        uint32
+	Characteristics       uint32
+}
+
+// To64 converts the ImageTLSDirectory32 to an ImageTLSDirectory64.
+func (i ImageTLSDirectory32) To64() ImageTLSDirectory64 {
+	return ImageTLSDirectory64{
+		StartAddressOfRawData: uint64(i.StartAddressOfRawData),
+		EndAddressOfRawData:   uint64(i.EndAddressOfRawData),
+		AddressOfIndex:        uint64(i.AddressOfIndex),
+		AddressOfCallBacks:    uint64(i.AddressOfCallBacks),
+		SizeOfZeroFill:        i.SizeOfZeroFill,
+		Characteristics:       i.Characteristics,
+	}
+}

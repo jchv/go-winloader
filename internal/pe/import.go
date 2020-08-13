@@ -16,9 +16,8 @@ func LinkModule(m *Module, mem io.ReadWriteSeeker, ldr loader.Loader) error {
 	}
 
 	// Determine pointer size based on whether we're PE32 or PE64.
-	pe64 := m.Header.OptionalHeader.Magic == ImageNTOptionalHeader64Magic
 	psize := 4
-	if pe64 {
+	if m.IsPE64 {
 		psize = 8
 	}
 
@@ -71,7 +70,7 @@ func LinkModule(m *Module, mem io.ReadWriteSeeker, ldr loader.Loader) error {
 		resolved := []uint64{}
 		for _, thunk := range thunks {
 			thunkord := int64(-1)
-			if (pe64 && thunk&0x8000000000000000 != 0) || (!pe64 && thunk&0x80000000 != 0) {
+			if (m.IsPE64 && thunk&0x8000000000000000 != 0) || (!m.IsPE64 && thunk&0x80000000 != 0) {
 				thunkord = int64(thunk & 0xFFFF)
 			}
 			if thunkord != -1 {
