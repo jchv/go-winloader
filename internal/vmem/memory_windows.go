@@ -16,21 +16,22 @@ var (
 	kernel32                    = windows.NewLazySystemDLL("kernel32")
 	kernel32VirtualAlloc        = kernel32.NewProc("VirtualAlloc")
 	kernel32VirtualFree         = kernel32.NewProc("VirtualFree")
+	kernel32VirtualProtect      = kernel32.NewProc("VirtualProtect")
 	kernel32GetNativeSystemInfo = kernel32.NewProc("GetNativeSystemInfo")
 
-	pageSize     int64
+	pageSize     uint64
 	pageSizeOnce sync.Once
 )
 
 // GetPageSize returns the size of a memory page.
-func GetPageSize() int64 {
+func GetPageSize() uint64 {
 	pageSizeOnce.Do(func() {
 		if kernel32GetNativeSystemInfo.Find() != nil {
 			pageSize = 0x1000
 		}
 		info := systemInfo{}
 		kernel32GetNativeSystemInfo.Call(uintptr(unsafe.Pointer(&info)))
-		pageSize = int64(info.dwPageSize)
+		pageSize = uint64(info.dwPageSize)
 	})
 	return pageSize
 }
@@ -43,8 +44,8 @@ type Memory struct {
 
 // Alloc allocates memory at addr of size with allocType and protect.
 // It returns nil if it fails.
-func Alloc(addr, size, allocType, protect uintptr) *Memory {
-	r, _, _ := kernel32VirtualAlloc.Call(addr, size, allocType, protect)
+func Alloc(addr, size uint64, allocType, protect int) *Memory {
+	r, _, _ := kernel32VirtualAlloc.Call(uintptr(addr), uintptr(size), uintptr(allocType), uintptr(protect))
 	if r == 0 {
 		return nil
 	}
@@ -62,6 +63,11 @@ func (m *Memory) Free() {
 	sh := (*reflect.SliceHeader)(unsafe.Pointer(&m.data))
 	kernel32VirtualFree.Call(sh.Data, 0, memRelease)
 	m.data = nil
+}
+
+// Addr returns the actual address of the memory.
+func (m *Memory) Addr() uint64 {
+	return uint64((*reflect.SliceHeader)(unsafe.Pointer(&m.data)).Data)
 }
 
 // Read implements the io.Reader interface.
@@ -132,5 +138,19 @@ func (m *Memory) Seek(offset int64, whence int) (int64, error) {
 	}
 	m.i = n
 	return n, nil
+}
 
+// Clear sets all bytes in the memory block to zero.
+func (m *Memory) Clear() {
+	for i := range m.data {
+		m.data[i] = 0
+	}
+}
+
+// Protect changes the memory protection for a range of memory.
+func (m *Memory) Protect(addr, size uint64, protect int) error {
+	// TODO: error handling
+	oldProtect := uint32(0)
+	kernel32VirtualProtect.Call(uintptr(m.Addr()+addr), uintptr(size), uintptr(protect), uintptr(unsafe.Pointer(&oldProtect)))
+	return nil
 }

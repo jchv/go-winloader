@@ -41,10 +41,7 @@ const (
 
 // RoundDown rounds an address up to a given multiple of size. Size must be a
 // power of two.
-func RoundDown(addr int64, size int64) int64 {
-	if addr < 0 {
-		panic("negative address not valid")
-	}
+func RoundDown(addr uint64, size uint64) uint64 {
 	if size&(size-1) != 0 {
 		panic("alignment size is not a power of two")
 	}
@@ -53,9 +50,6 @@ func RoundDown(addr int64, size int64) int64 {
 
 // RoundUp rounds an address up to a given multiple of size. Size must be a
 // power of two.
-func RoundUp(addr int64, size int64) int64 {
-	if addr < 0 {
-		panic("negative address not valid")
-	}
+func RoundUp(addr uint64, size uint64) uint64 {
 	return RoundDown(addr+size-1, size)
 }

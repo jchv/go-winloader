@@ -18,30 +18,26 @@ var (
 	ErrUnknownOptionalHeaderMagic = errors.New("pe: unknown optional header magic")
 )
 
-// Section contains the information for a section.
-type Section struct {
-	Header ImageSectionHeader
-	Data   []byte
-}
-
 // Module contains a parsed and loaded PE file.
 type Module struct {
-	Header   ImageNTHeaders64
-	Sections []Section
-	Relocs   []BaseRelocation
+	DOSHeader ImageDOSHeader
+	Header    ImageNTHeaders64
+	Sections  []ImageSectionHeader
 }
 
 // LoadModule loads a PE module into memory.
 func LoadModule(r io.ReadSeeker) (*Module, error) {
+	m := &Module{}
+
 	r.Seek(0, io.SeekStart)
 	dos := ImageDOSHeader{}
 	if err := binary.Read(r, binary.LittleEndian, &dos); err != nil {
 		return nil, err
 	}
-
 	if dos.Signature != MZSignature {
 		return nil, ErrBadMZSignature
 	}
+	m.DOSHeader = dos
 
 	r.Seek(int64(dos.NewHeaderAddr), io.SeekStart)
 	pesig := [4]byte{}
@@ -54,7 +50,7 @@ func LoadModule(r io.ReadSeeker) (*Module, error) {
 	}
 
 	optmagic := uint16(0)
-	r.Seek(int64(dos.NewHeaderAddr)+OffsetOfOptionalHeaderMagicFromNTHeader, io.SeekStart)
+	r.Seek(int64(dos.NewHeaderAddr)+OffsetOfOptionalHeaderFromNTHeader, io.SeekStart)
 	if err := binary.Read(r, binary.LittleEndian, &optmagic); err != nil {
 		return nil, err
 	}
@@ -62,63 +58,30 @@ func LoadModule(r io.ReadSeeker) (*Module, error) {
 	r.Seek(int64(dos.NewHeaderAddr), io.SeekStart)
 	switch optmagic {
 	case ImageNTOptionalHeader32Magic:
-		return LoadModulePE32(r)
+		nt := ImageNTHeaders32{}
+		if err := binary.Read(r, binary.LittleEndian, &nt); err != nil {
+			return nil, err
+		}
+		m.Header = nt.To64()
 	case ImageNTOptionalHeader64Magic:
-		return LoadModulePE64(r)
+		nt := ImageNTHeaders64{}
+		if err := binary.Read(r, binary.LittleEndian, &nt); err != nil {
+			return nil, err
+		}
+		m.Header = nt
 	default:
 		return nil, ErrUnknownOptionalHeaderMagic
 	}
-}
 
-// LoadModulePE32 loads a PE32 module into memory.
-func LoadModulePE32(r io.ReadSeeker) (*Module, error) {
-	nt := ImageNTHeaders32{}
-	if err := binary.Read(r, binary.LittleEndian, &nt); err != nil {
-		return nil, err
-	}
+	// Seek past end of optional headers.
+	r.Seek(int64(dos.NewHeaderAddr)+OffsetOfOptionalHeaderFromNTHeader+int64(m.Header.FileHeader.SizeOfOptionalHeader), io.SeekStart)
 
-	if nt.Signature != PESignature {
-		return nil, ErrBadPESignature
-	}
-
-	m := &Module{}
-	m.Header = nt.To64()
-
-	for i := uint16(0); i < nt.FileHeader.NumberOfSections; i++ {
+	for i := uint16(0); i < m.Header.FileHeader.NumberOfSections; i++ {
 		section := ImageSectionHeader{}
 		if err := binary.Read(r, binary.LittleEndian, &section); err != nil {
 			return nil, err
 		}
-		m.Sections = append(m.Sections, Section{
-			Header: section,
-		})
-	}
-
-	return m, nil
-}
-
-// LoadModulePE64 loads a PE64 module into memory.
-func LoadModulePE64(r io.ReadSeeker) (*Module, error) {
-	nt := ImageNTHeaders64{}
-	if err := binary.Read(r, binary.LittleEndian, &nt); err != nil {
-		return nil, err
-	}
-
-	if nt.Signature != PESignature {
-		return nil, ErrBadPESignature
-	}
-
-	m := &Module{}
-	m.Header = nt
-
-	for i := uint16(0); i < nt.FileHeader.NumberOfSections; i++ {
-		section := ImageSectionHeader{}
-		if err := binary.Read(r, binary.LittleEndian, &section); err != nil {
-			return nil, err
-		}
-		m.Sections = append(m.Sections, Section{
-			Header: section,
-		})
+		m.Sections = append(m.Sections, section)
 	}
 
 	return m, nil

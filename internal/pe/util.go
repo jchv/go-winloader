@@ -25,3 +25,16 @@ func readfully(r io.Reader, p []byte) error {
 	}
 	return nil
 }
+
+func readsz(r io.Reader) string {
+	name := []byte{}
+	for {
+		b := [1]byte{}
+		r.Read(b[:])
+		if b[0] == 0 {
+			break
+		}
+		name = append(name, b[0])
+	}
+	return string(name)
+}

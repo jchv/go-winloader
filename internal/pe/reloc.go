@@ -16,6 +16,31 @@ type BaseRelocation struct {
 	Type int
 }
 
+// LoadBaseRelocs loads relocations from memory.
+func LoadBaseRelocs(m *Module, mem io.ReadSeeker) []BaseRelocation {
+	relocs := []BaseRelocation{}
+	dir := m.Header.OptionalHeader.DataDirectory[ImageDirectoryEntryBaseReloc]
+	if dir.Size == 0 {
+		return relocs
+	}
+	n := uint32(0)
+	mem.Seek(int64(dir.VirtualAddress), io.SeekStart)
+	for n < dir.Size {
+		hdr := ImageBaseRelocation{}
+		binary.Read(mem, binary.LittleEndian, &hdr)
+		data := make([]uint16, hdr.SizeOfBlock/2-4)
+		binary.Read(mem, binary.LittleEndian, &data)
+		for _, i := range data {
+			relocs = append(relocs, BaseRelocation{
+				Offset: uint64(hdr.VirtualAddress) + uint64(i&0xFFF),
+				Type:   int(i >> 12),
+			})
+		}
+		n += hdr.SizeOfBlock
+	}
+	return relocs
+}
+
 // Relocate performs a series of relocations on m, where address is the load
 // address and original is the original address. The ReadWriteSeeker is
 // assumed to have the PE image at offset 0.

@@ -11,15 +11,15 @@ This is a bit more versatile than linking directly to object files, since you do
 ```go
 // Load a module off disk (for simplicity; you can pass in any byte slice.)
 b, _ := ioutil.ReadFile("my.dll")
-mod, err := LoadLibrary(b)
+mod, err := winloader.LoadFromMemory(b)
 if err != nil {
     log.Fatalln("error loading module:", err)
 }
 
 // Get a procedure.
-addProc := mod.GetProcAddress("_Add")
+addProc := mod.Proc("Add")
 if proc == nil {
-    log.Fatalln("module my.dll is missing required procedure _Add")
+    log.Fatalln("module my.dll is missing required procedure Add")
 }
 
 // Call the procedure!

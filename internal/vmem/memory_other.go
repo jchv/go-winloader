@@ -14,12 +14,17 @@ func GetPageSize() int64 {
 
 // Alloc allocates memory at addr of size with allocType and protect.
 // It returns nil if it fails.
-func Alloc(addr, size, allocType, protect uintptr) *Memory {
+func Alloc(addr, size uint64, allocType, protect int) *Memory {
 	panic("not implemented")
 }
 
 // Free frees the block of memory.
 func (m *Memory) Free() {
+	panic("not implemented")
+}
+
+// Addr returns the actual address of the memory.
+func (m *Memory) Addr() uint64 {
 	panic("not implemented")
 }
 
@@ -45,5 +50,10 @@ func (m *Memory) WriteAt(b []byte, off int64) (n int, err error) {
 
 // Seek implements the io.Seeker interface.
 func (m *Memory) Seek(offset int64, whence int) (int64, error) {
+	panic("not implemented")
+}
+
+// Protect changes the memory protection for a range of memory.
+func (m *Memory) Protect(addr, size uint64, protect int) error {
 	panic("not implemented")
 }

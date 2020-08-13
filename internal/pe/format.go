@@ -54,10 +54,10 @@ const (
 
 // Enumeration of useful field offsets.
 const (
-	// OffsetOfOptionalHeaderMagicFromNTHeader is the offset from the start of
+	// OffsetOfOptionalHeaderFromNTHeader is the offset from the start of
 	// the NT header to the optional header magic value. This is helpful for
 	// determining if the PE file is PE32 or PE64.
-	OffsetOfOptionalHeaderMagicFromNTHeader = 0x18
+	OffsetOfOptionalHeaderFromNTHeader = 0x18
 )
 
 // Enumeration of fixed-size array lengths in PE
@@ -461,4 +461,28 @@ type ImageSectionHeader struct {
 type ImageBaseRelocation struct {
 	VirtualAddress uint32
 	SizeOfBlock    uint32
+}
+
+// The ImageImportDescriptor contains information about an imported module.
+type ImageImportDescriptor struct {
+	OriginalFirstThunk uint32
+	TimeDateStamp      uint32
+	ForwarderChain     uint32
+	Name               uint32
+	FirstThunk         uint32
+}
+
+// The ImageExportDirectory contains information about the module's exports.
+type ImageExportDirectory struct {
+	Characteristics       uint32
+	TimeDateStamp         uint32
+	MajorVersion          uint16
+	MinorVersion          uint16
+	Name                  uint32
+	Base                  uint32
+	NumberOfFunctions     uint32
+	NumberOfNames         uint32
+	AddressOfFunctions    uint32
+	AddressOfNames        uint32
+	AddressOfNameOrdinals uint32
 }
