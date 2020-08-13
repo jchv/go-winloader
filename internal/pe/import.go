@@ -83,10 +83,10 @@ func LinkModule(m *Module, mem io.ReadWriteSeeker, ldr loader.Loader) error {
 				}
 			} else {
 				// Read name
-				mem.Seek(thunkord+2, io.SeekStart)
+				mem.Seek(int64(thunk+2), io.SeekStart)
+				fnname := readsz(mem)
 
 				// Import by name
-				fnname := readsz(mem)
 				if proc := lib.Proc(fnname); proc != nil {
 					resolved = append(resolved, proc.Addr())
 				} else {
