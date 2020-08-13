@@ -1,6 +1,6 @@
 # go-winloader
 
-**Note:** This is currently non-functional, check back soon.
+**Note:** This is currently experimental. It is *expected* that many Windows modules will not load at this time. Some architectures may not work entirely. If you would like to contribute fixes feel free, although I am actively working on this, so you may want to coordinate by opening an issue so we don't step on eachother's toes.
 
 go-winloader is a library that implements the Windows module loader algorithm in pure Go. The actual Windows module loader, accessible via `LoadLibrary`, only supports loading modules from disk, which is sometimes undesirable. With go-winloader, you can load modules directly from memory without needing to write intermediate temporary files to disk.
 
