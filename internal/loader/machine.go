@@ -40,6 +40,9 @@ type Machine interface {
 	// supported by this abstract machine. Machine is a PE machine ID.
 	IsArchitectureSupported(machine int) bool
 
+	// GetPageSize returns the size of a memory page on this abstract machine.
+	GetPageSize() uint64
+
 	// Alloc performs virtual memory allocation. It should match the semantics
 	// of VirtualAlloc/VirtualFree on Windows.
 	Alloc(addr, size uint64, allocType, protect int) Memory

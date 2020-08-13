@@ -14,6 +14,10 @@ func (NativeMachine) IsArchitectureSupported(machine int) bool {
 	return machine == NativeArch
 }
 
+func (NativeMachine) GetPageSize() uint64 {
+	return vmem.GetPageSize()
+}
+
 // Alloc implements loader.Machine.
 func (NativeMachine) Alloc(addr, size uint64, allocType, protect int) loader.Memory {
 	if mem := vmem.Alloc(addr, size, allocType, protect); mem != nil {

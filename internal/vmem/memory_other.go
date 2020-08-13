@@ -8,7 +8,7 @@ type Memory struct {
 }
 
 // GetPageSize returns the size of a memory page.
-func GetPageSize() int64 {
+func GetPageSize() uint64 {
 	panic("not implemented")
 }
 
@@ -56,4 +56,8 @@ func (m *Memory) Seek(offset int64, whence int) (int64, error) {
 // Protect changes the memory protection for a range of memory.
 func (m *Memory) Protect(addr, size uint64, protect int) error {
 	panic("not implemented")
+}
+
+// Clear sets all bytes in the memory block to zero.
+func (m *Memory) Clear() {
 }

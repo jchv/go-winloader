@@ -9,7 +9,6 @@ import (
 	"github.com/jchv/go-winloader/internal/loader"
 	"github.com/jchv/go-winloader/internal/pe"
 	"github.com/jchv/go-winloader/internal/vmem"
-	"github.com/jchv/go-winloader/internal/winloader"
 )
 
 // module implements a module for the memory loader.
@@ -22,18 +21,18 @@ type module struct {
 
 // Proc implements loader.Module
 func (m *module) Proc(name string) loader.Proc {
-	return winloader.Proc(m.exports.Proc(name))
+	return m.machine.MemProc(m.exports.Proc(name))
 }
 
 // Ordinal implements loader.Module
 func (m *module) Ordinal(ordinal uint64) loader.Proc {
-	return winloader.Proc(m.exports.Ordinal(uint16(ordinal)))
+	return m.machine.MemProc(m.exports.Ordinal(uint16(ordinal)))
 }
 
 // Free implements loader.Module
 func (m *module) Free() error {
 	// Execute entrypoint for detach.
-	entry := winloader.Proc(m.memory.Addr() + uint64(m.pemod.Header.OptionalHeader.AddressOfEntryPoint))
+	entry := m.machine.MemProc(m.memory.Addr() + uint64(m.pemod.Header.OptionalHeader.AddressOfEntryPoint))
 	entry.Call(uint64(m.memory.Addr()), 0, 0)
 
 	// Free memory.
@@ -75,7 +74,7 @@ func (l *Loader) LoadMem(data []byte) (loader.Module, error) {
 		return nil, fmt.Errorf("image architecture not %04x not supported by this machine", bin.Header.FileHeader.Machine)
 	}
 
-	pageSize := vmem.GetPageSize()
+	pageSize := l.machine.GetPageSize()
 	imageSize := vmem.RoundUp(uint64(bin.Header.OptionalHeader.SizeOfImage), pageSize)
 
 	// Try allocating on preferred address.
@@ -160,7 +159,7 @@ func (l *Loader) LoadMem(data []byte) (loader.Module, error) {
 	dump := [0x100]byte{}
 	mem.Seek(int64(bin.Header.OptionalHeader.AddressOfEntryPoint), io.SeekStart)
 	mem.Read(dump[:])
-	entry := winloader.Proc(realBase + uint64(bin.Header.OptionalHeader.AddressOfEntryPoint))
+	entry := l.machine.MemProc(realBase + uint64(bin.Header.OptionalHeader.AddressOfEntryPoint))
 	entry.Call(uint64(mem.Addr()), 1, 0)
 
 	exports, err := pe.LoadExports(bin, mem, realBase)
