@@ -21,12 +21,20 @@ type module struct {
 
 // Proc implements loader.Module
 func (m *module) Proc(name string) loader.Proc {
-	return m.machine.MemProc(m.exports.Proc(name))
+	addr := m.exports.Proc(name)
+	if addr == 0 {
+		return nil
+	}
+	return m.machine.MemProc(addr)
 }
 
 // Ordinal implements loader.Module
 func (m *module) Ordinal(ordinal uint64) loader.Proc {
-	return m.machine.MemProc(m.exports.Ordinal(uint16(ordinal)))
+	addr := m.exports.Ordinal(uint16(ordinal))
+	if addr == 0 {
+		return nil
+	}
+	return m.machine.MemProc(addr)
 }
 
 // Free implements loader.Module
