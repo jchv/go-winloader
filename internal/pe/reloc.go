@@ -101,7 +101,7 @@ func Relocate(machine int, rels []BaseRelocation, address uint64, original uint6
 			if err := read(rel.Offset, 8); err != nil {
 				return err
 			}
-			o.PutUint32(b[0:8], uint32(uint64(o.Uint32(b[:8]))+delta))
+			o.PutUint64(b[0:8], uint64(o.Uint64(b[:8]))+delta)
 			if _, err := m.Write(b[0:8]); err != nil {
 				return err
 			}
