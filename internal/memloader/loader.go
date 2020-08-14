@@ -70,6 +70,7 @@ type Options struct {
 	// HintAddModuleToPEB specifies that the memory loader should try to add
 	// the loaded module into the PEB so that certain things function as
 	// expected.
+	// NOTE: This is not implemented yet and may not be possible.
 	HintAddModuleToPEB bool
 
 	// HintUseProcessHInstance specifies that the memory loader should use the
@@ -99,11 +100,18 @@ func (l *Loader) LoadMem(data []byte) (loader.Module, error) {
 	pageSize := l.machine.GetPageSize()
 	imageSize := vmem.RoundUp(uint64(bin.Header.OptionalHeader.SizeOfImage), pageSize)
 
-	// Try allocating on preferred address.
-	mem := l.machine.Alloc(bin.Header.OptionalHeader.ImageBase, imageSize, vmem.MemCommit|vmem.MemReserve, vmem.PageReadWrite)
+	var mem loader.Memory
 
-	// If this fails, allocate in arbitrary location.
-	// Ensure within a 4GiB boundary.
+	// If the image is not movable, allocate it at its preferred address.
+	if bin.Header.OptionalHeader.DllCharacteristics&pe.ImageDLLCharacteristicsDynamicBase == 0 {
+		mem = l.machine.Alloc(bin.Header.OptionalHeader.ImageBase, imageSize, vmem.MemCommit|vmem.MemReserve, vmem.PageReadWrite)
+		if mem == nil {
+			return nil, fmt.Errorf("image could not be mapped at preferred base 0x%08x and cannot be relocated", bin.Header.OptionalHeader.ImageBase)
+		}
+	}
+
+	// Allocate anywhere, so as long as the image won't span a 4 GiB
+	// alignment boundary.
 	failedAllocs := []loader.Memory{}
 	for mem == nil || mem.Addr()>>32 != (mem.Addr()+imageSize)>>32 {
 		if mem != nil {
