@@ -9,14 +9,16 @@ import (
 	"github.com/jchv/go-winloader/internal/loader"
 	"github.com/jchv/go-winloader/internal/pe"
 	"github.com/jchv/go-winloader/internal/vmem"
+	"github.com/jchv/go-winloader/internal/winloader"
 )
 
 // module implements a module for the memory loader.
 type module struct {
-	machine loader.Machine
-	memory  loader.Memory
-	pemod   *pe.Module
-	exports *pe.ExportTable
+	machine   loader.Machine
+	memory    loader.Memory
+	pemod     *pe.Module
+	exports   *pe.ExportTable
+	hinstance uint64
 }
 
 // Proc implements loader.Module
@@ -50,17 +52,29 @@ func (m *module) Free() error {
 
 // Loader implements a memory loader for PE files.
 type Loader struct {
-	next    loader.Loader
-	machine loader.Machine
+	next      loader.Loader
+	machine   loader.Machine
+	pebhacks  bool
+	prochinst bool
 }
 
 // Options contains the options for creating a new memory loader.
 type Options struct {
-	// Next specifies the loader to use for recursing to resolve modules by name.
+	// Next specifies the loader to use for recursing to resolve modules by
+	// name.
 	Next loader.Loader
 
 	// Machine specifies the machine the module should be loaded into.
 	Machine loader.Machine
+
+	// HintAddModuleToPEB specifies that the memory loader should try to add
+	// the loaded module into the PEB so that certain things function as
+	// expected.
+	HintAddModuleToPEB bool
+
+	// HintUseProcessHInstance specifies that the memory loader should use the
+	// host process's HINSTANCE value for calling into entrypoints.
+	HintUseProcessHInstance bool
 }
 
 // New creates a new loader with the specified options.
@@ -167,6 +181,24 @@ func (l *Loader) LoadMem(data []byte) (loader.Module, error) {
 		}
 	}
 
+	// Handle HINSTANCE setup.
+	hinstance := realBase
+	if l.pebhacks {
+		// TODO: implement PEB loader hacks, see if it works.
+	}
+	if l.prochinst {
+		if prochinst, err := winloader.GetProcessHInstance(); err == nil {
+			hinstance = uint64(prochinst)
+		}
+	}
+
+	m := &module{
+		machine:   l.machine,
+		memory:    mem,
+		pemod:     bin,
+		hinstance: hinstance,
+	}
+
 	// Execute TLS callbacks.
 	tlsdir := bin.Header.OptionalHeader.DataDirectory[pe.ImageDirectoryEntryTLS]
 	if tlsdir.Size > 0 {
@@ -190,23 +222,18 @@ func (l *Loader) LoadMem(data []byte) (loader.Module, error) {
 				break
 			}
 			cb := l.machine.MemProc(realBase + addr)
-			cb.Call(uint64(mem.Addr()), 1, 0)
+			cb.Call(hinstance, 1, 0)
 		}
 	}
 
 	// Execute entrypoint for attach.
 	entry := l.machine.MemProc(realBase + uint64(bin.Header.OptionalHeader.AddressOfEntryPoint))
-	entry.Call(uint64(mem.Addr()), 1, 0)
+	entry.Call(hinstance, 1, 0)
 
-	exports, err := pe.LoadExports(bin, mem, realBase)
+	m.exports, err = pe.LoadExports(bin, mem, realBase)
 	if err != nil {
 		return nil, err
 	}
 
-	return &module{
-		machine: l.machine,
-		memory:  mem,
-		pemod:   bin,
-		exports: exports,
-	}, nil
+	return m, nil
 }
