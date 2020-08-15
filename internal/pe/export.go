@@ -39,20 +39,22 @@ func LoadExports(m *Module, mem io.ReadWriteSeeker, base uint64) (*ExportTable, 
 	binary.Read(mem, binary.LittleEndian, &header)
 
 	// Load addresses
-	addresses := make([]uint32, header.NumberOfNames)
+	addresses := make([]uint32, header.NumberOfFunctions)
 	mem.Seek(int64(header.AddressOfFunctions), io.SeekStart)
 	for i := range addresses {
 		b := [4]byte{}
 		mem.Read(b[:])
 		addresses[i] = binary.LittleEndian.Uint32(b[:])
+		table.ordinals[uint16(i)] = base + uint64(addresses[i])
 	}
 
-	// Load ordinals
+	// Load name ordinals
+	nameords := make([]uint16, header.NumberOfNames)
 	mem.Seek(int64(header.AddressOfNameOrdinals), io.SeekStart)
-	for _, procaddr := range addresses {
+	for i := range nameords {
 		b := [2]byte{}
 		mem.Read(b[:])
-		table.ordinals[binary.LittleEndian.Uint16(b[:])] = base + uint64(procaddr)
+		nameords[i] = binary.LittleEndian.Uint16(b[:])
 	}
 
 	// Load name addresses
@@ -67,7 +69,7 @@ func LoadExports(m *Module, mem io.ReadWriteSeeker, base uint64) (*ExportTable, 
 	// Load names
 	for i, nameaddr := range nameaddrs {
 		mem.Seek(int64(nameaddr), io.SeekStart)
-		table.symbols[readsz(mem)] = base + uint64(addresses[i])
+		table.symbols[readsz(mem)] = base + uint64(addresses[nameords[i]])
 	}
 
 	return table, nil
