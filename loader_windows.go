@@ -14,7 +14,8 @@ var ldr = memloader.New(memloader.Options{
 	Machine: winloader.NativeMachine{},
 })
 
-// LoadFromFile loads a Windows module from file using the native Windows loader.
+// LoadFromFile loads a Windows module from file using the native Windows
+// loader.
 func LoadFromFile(name string) (Module, error) {
 	return native.Load(name)
 }
