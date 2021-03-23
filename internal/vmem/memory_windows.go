@@ -13,15 +13,23 @@ import (
 )
 
 var (
-	kernel32                    = windows.NewLazySystemDLL("kernel32")
-	kernel32VirtualAlloc        = kernel32.NewProc("VirtualAlloc")
-	kernel32VirtualFree         = kernel32.NewProc("VirtualFree")
-	kernel32VirtualProtect      = kernel32.NewProc("VirtualProtect")
-	kernel32GetNativeSystemInfo = kernel32.NewProc("GetNativeSystemInfo")
+	kernel32                      = windows.NewLazySystemDLL("kernel32")
+	kernel32VirtualAlloc          = kernel32.NewProc("VirtualAlloc")
+	kernel32VirtualFree           = kernel32.NewProc("VirtualFree")
+	kernel32VirtualProtect        = kernel32.NewProc("VirtualProtect")
+	kernel32GetNativeSystemInfo   = kernel32.NewProc("GetNativeSystemInfo")
+	kernel32FlushInstructionCache = kernel32.NewProc("FlushInstructionCache")
+	kernel32GetCurrentProcess     = kernel32.NewProc("GetCurrentProcess")
 
 	pageSize     uint64
 	pageSizeOnce sync.Once
 )
+
+// getCurrentProcess returns the current process handle.
+func getCurrentProcess() uintptr {
+	r, _, _ := kernel32GetCurrentProcess.Call()
+	return uintptr(r)
+}
 
 // GetPageSize returns the size of a memory page.
 func GetPageSize() uint64 {
@@ -49,10 +57,15 @@ func Alloc(addr, size uint64, allocType, protect int) *Memory {
 	if r == 0 {
 		return nil
 	}
+	return Get(uint64(r), size)
+}
 
+// Get returns a range of existing memory. If the range is not a block of
+// allocated memory, the returned memory will pagefault when accessed.
+func Get(addr, size uint64) *Memory {
 	m := &Memory{}
 	sh := (*reflect.SliceHeader)(unsafe.Pointer(&m.data))
-	sh.Data = r
+	sh.Data = uintptr(addr)
 	sh.Len = int(size)
 	sh.Cap = int(size)
 	return m
@@ -101,6 +114,9 @@ func (m *Memory) Write(b []byte) (n int, err error) {
 		return 0, io.ErrShortWrite
 	}
 	n = copy(m.data[m.i:], b)
+	if kernel32FlushInstructionCache.Find() == nil {
+		kernel32FlushInstructionCache.Call(getCurrentProcess(), uintptr(unsafe.Pointer(&m.data[m.i])), uintptr(n))
+	}
 	m.i += int64(n)
 	return n, nil
 }
@@ -114,6 +130,9 @@ func (m *Memory) WriteAt(b []byte, off int64) (n int, err error) {
 		return 0, io.ErrShortWrite
 	}
 	n = copy(m.data[off:], b)
+	if kernel32FlushInstructionCache.Find() == nil {
+		kernel32FlushInstructionCache.Call(getCurrentProcess(), uintptr(unsafe.Pointer(&m.data[off])), uintptr(n))
+	}
 	if n < len(b) {
 		return n, io.ErrShortWrite
 	}
@@ -144,6 +163,9 @@ func (m *Memory) Seek(offset int64, whence int) (int64, error) {
 func (m *Memory) Clear() {
 	for i := range m.data {
 		m.data[i] = 0
+	}
+	if kernel32FlushInstructionCache.Find() == nil {
+		kernel32FlushInstructionCache.Call(getCurrentProcess(), uintptr(unsafe.Pointer(&m.data[0])), uintptr(len(m.data)))
 	}
 }
 

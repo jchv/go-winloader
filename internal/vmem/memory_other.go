@@ -18,6 +18,12 @@ func Alloc(addr, size uint64, allocType, protect int) *Memory {
 	panic("not implemented")
 }
 
+// Get returns a range of existing memory. If the range is not a block of
+// allocated memory, the returned memory will pagefault when accessed.
+func Get(addr, size uint64) *Memory {
+	panic("not implemented")
+}
+
 // Free frees the block of memory.
 func (m *Memory) Free() {
 	panic("not implemented")
@@ -60,4 +66,5 @@ func (m *Memory) Protect(addr, size uint64, protect int) error {
 
 // Clear sets all bytes in the memory block to zero.
 func (m *Memory) Clear() {
+	panic("not implemented")
 }
