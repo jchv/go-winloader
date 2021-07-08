@@ -104,7 +104,7 @@ func (l *Loader) LoadMem(data []byte) (loader.Module, error) {
 
 	// If the image is not movable, allocate it at its preferred address.
 	if bin.Header.OptionalHeader.DllCharacteristics&pe.ImageDLLCharacteristicsDynamicBase == 0 {
-		mem = l.machine.Alloc(bin.Header.OptionalHeader.ImageBase, imageSize, vmem.MemCommit|vmem.MemReserve, vmem.PageReadWrite)
+		mem = l.machine.Alloc(bin.Header.OptionalHeader.ImageBase, imageSize, vmem.MemCommit|vmem.MemReserve, vmem.PageExecuteReadWrite)
 		if mem == nil {
 			return nil, fmt.Errorf("image could not be mapped at preferred base 0x%08x and cannot be relocated", bin.Header.OptionalHeader.ImageBase)
 		}
@@ -117,7 +117,7 @@ func (l *Loader) LoadMem(data []byte) (loader.Module, error) {
 		if mem != nil {
 			failedAllocs = append(failedAllocs, mem)
 		}
-		if mem = l.machine.Alloc(0, imageSize, vmem.MemCommit|vmem.MemReserve, vmem.PageReadWrite); mem == nil {
+		if mem = l.machine.Alloc(0, imageSize, vmem.MemCommit|vmem.MemReserve, vmem.PageExecuteReadWrite); mem == nil {
 			return nil, fmt.Errorf("allocation of %d bytes failed", imageSize)
 		}
 	}
