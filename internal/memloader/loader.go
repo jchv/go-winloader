@@ -223,14 +223,16 @@ func (l *Loader) LoadMem(data []byte) (loader.Module, error) {
 			dir = dir32.To64()
 		}
 		mem.Seek(int64(dir.AddressOfCallBacks), io.SeekStart)
-		for {
-			mem.Read(b[:psize])
-			addr := binary.LittleEndian.Uint64(b[:])
-			if addr == 0 {
-				break
+		if dir.AddressOfCallBacks != 0 {
+			for {
+				mem.Read(b[:psize])
+				addr := binary.LittleEndian.Uint64(b[:])
+				if addr == 0 {
+					break
+				}
+				cb := l.machine.MemProc(realBase + addr)
+				cb.Call(hinstance, 1, 0)
 			}
-			cb := l.machine.MemProc(realBase + addr)
-			cb.Call(hinstance, 1, 0)
 		}
 	}
 
