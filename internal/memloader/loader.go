@@ -183,7 +183,11 @@ func (l *Loader) LoadMem(data []byte) (loader.Module, error) {
 		case executable && readable && writable:
 			protect = vmem.PageExecuteReadWrite
 		}
-		err := mem.Protect(uint64(section.VirtualAddress), uint64(section.SizeOfRawData), protect)
+		size := uint64(section.SizeOfRawData)
+		if size == 0 {
+			size = uint64(bin.Header.OptionalHeader.SectionAlignment)
+		}
+		err := mem.Protect(uint64(section.VirtualAddress), size, protect)
 		if err != nil {
 			return nil, err
 		}
